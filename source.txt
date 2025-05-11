@@ -1,0 +1,113 @@
+# Loading the data
+
+# Preprocessing the data
+
+# Feature engineering
+
+# Model training
+
+# Evaluation
+
+# Step 1: Loading the Data
+# python
+# Copy
+# Edit
+import pandas as pd
+
+# Load dataset
+dataset = pd.read_csv('traffic_accidents.csv')
+
+# Show the first few rows of the dataset
+print(dataset.head())
+# Step 2: Preprocessing the Data
+# python
+# Copy
+# Edit
+# Convert date to datetime
+dataset['Date'] = pd.to_datetime(dataset['Date'])
+
+# Handle missing values by filling or dropping
+dataset.fillna(method='ffill', inplace=True)
+
+# Convert categorical columns into numerical ones (e.g., weather conditions)
+dataset = pd.get_dummies(dataset, columns=['Weather_Conditions', 'Road_Type'], drop_first=True)
+
+# Drop irrelevant columns, if any
+dataset.drop(['Accident_ID', 'Location'], axis=1, inplace=True)
+# Step 3: Feature Engineering
+# python
+# Copy
+# Edit
+# Create new temporal features from 'Date' and 'Time'
+dataset['Hour_of_Day'] = dataset['Time'].apply(lambda x: int(x.split(':')[0]))
+dataset['Day_of_Week'] = dataset['Date'].dt.day_name()
+
+# Create binary feature for rainy and snowy weather
+dataset['Is_Rainy'] = dataset['Weather_Conditions'].apply(lambda x: 1 if 'Rain' in x else 0)
+dataset['Is_Snowy'] = dataset['Weather_Conditions'].apply(lambda x: 1 if 'Snow' in x else 0)
+
+# Create traffic volume threshold feature
+traffic_threshold = dataset['Traffic_Volume'].median()
+dataset['High_Traffic_Volume'] = dataset['Traffic_Volume'].apply(lambda x: 1 if x > traffic_threshold else 0)
+# Step 4: Splitting the Data into Training and Testing Sets
+# python
+# Copy
+# Edit
+from sklearn.model_selection import train_test_split
+
+# Define features (X) and target variable (y)
+X = dataset.drop('Accident_Severity', axis=1)  # Replace with the column representing severity or accident zone
+y = dataset['Accident_Severity']  # Target variable
+
+# Split the dataset into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# Step 5: Model Training (Using XGBoost)
+# python
+# Copy
+# Edit
+import xgboost as xgb
+from sklearn.metrics import accuracy_score, classification_report
+
+# Initialize the XGBoost classifier
+model = xgb.XGBClassifier()
+
+# Train the model
+model.fit(X_train, y_train)
+
+# Predict on the test set
+y_pred = model.predict(X_test)
+
+# Evaluate the model
+print(f'Accuracy: {accuracy_score(y_test, y_pred)}')
+print(f'Classification Report:\n{classification_report(y_test, y_pred)}')
+# Step 6: Visualize the Feature Importance
+# python
+# Copy
+# Edit
+import matplotlib.pyplot as plt
+
+# Plot feature importance
+xgb.plot_importance(model, max_num_features=10, importance_type='weight')
+plt.title('Feature Importance')
+plt.show()
+# Step 7: Model Deployment (Optional)
+# For deploying the model, you can use libraries such as Flask or FastAPI to expose the model as a REST API for real-time predictions.
+
+# Example (using Flask):
+
+# python
+# Copy
+# Edit
+from flask import Flask, request, jsonify
+
+app = Flask(_name_)
+
+@app.route('/predict', methods=['POST'])
+def predict():
+    data = request.get_json()  # Get the input data as JSON
+    df = pd.DataFrame(data)  # Convert to a DataFrame
+    prediction = model.predict(df)
+    return jsonify({'prediction': prediction.tolist()})
+
+if _name_ == '_main_':
+    app.run(debug=True)
